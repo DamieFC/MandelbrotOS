@@ -110,16 +110,32 @@ void ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vect,
   ioapic_redirect_gsi(lapic_id, irq, vect, 0, status);
 }
 
+/* uint32_t pit_read_count(void) { */
+/* outb(0x43, 0); */
+/* uint32_t counter = inb(0x40); */
+/* counter |= inb(0x40) << 8; */
+
+/* return counter; */
+/* } */
+
 void lapic_timer_init() {
+  uint16_t divisor = 1193182 / 1000;
+  outb(0x43, 0x36);
+  outb(0x40, (uint8_t)(divisor & 0xFF));
+  outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
+
   lapic_write(LAPIC_REG_TIMER_DIV, 0x3);
   lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);
 
-  for (volatile size_t i = 0; i < 10000000; i++) // TODO: Make this not suck
-    asm volatile("nop");
+  outb(0x43, 0x30);
+  outb(0x40, (uint8_t)((uint16_t)(1193182 / 100000) & 0xFF));
+  outb(0x40, (uint8_t)((((uint16_t)(1193182 / 100000)) >> 8) & 0xFF));
+  while (pit_read_count() != 0)
+    ;
 
   lapic_write(LAPIC_REG_TIMER, 0x10000);
 
-  uint32_t tick = 0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT);
+  uint32_t tick = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 100;
 
   lapic_write(LAPIC_REG_TIMER, SCHEDULE_REG | 0x20000);
   lapic_write(LAPIC_REG_TIMER_DIV, 0x3);

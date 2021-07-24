@@ -2,6 +2,7 @@
 #include <fb/fb.h>
 #include <font.h>
 #include <lock.h>
+#include <mm/pmm.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -39,7 +40,6 @@ void putpixel(int x, int y, uint32_t color) {
 }
 
 void putnc(int x, int y, char c, uint32_t fgc, uint32_t bgc) {
-  MAKE_LOCK(putnc_lock);
   for (int ly = 0; ly < FONT_HEIGHT; ly++) {
     for (int lx = 0; lx < FONT_WIDTH; lx++) {
       uint8_t pixel = font_array[(c * FONT_CHAR_DEFINITION) + ly];
@@ -49,24 +49,22 @@ void putnc(int x, int y, char c, uint32_t fgc, uint32_t bgc) {
         framebuffer[x + ((FONT_WIDTH - 1) - lx) + ((y + ly) * fb_width)] = bgc;
     }
   }
-  UNLOCK(putnc_lock);
 }
 
 void knewline() {
-  MAKE_LOCK(newline_lock);
   for (size_t i = 0; i < (size_t)(fb_width * fb_height); i++)
     framebuffer[i] = (framebuffer + fb_width * FONT_HEIGHT)[i];
   for (size_t i = 0; i < (size_t)(fb_width * fb_height); i++)
     framebuffer[i] = (framebuffer + fb_width * FONT_HEIGHT)[i];
   for (size_t i = 0; i < (size_t)(fb_height * (FONT_HEIGHT + 2)); i++)
-    (framebuffer + (fb_width * fb_height) - (fb_width * FONT_HEIGHT))[i] = curr_bg_col;
+    (framebuffer + (fb_width * fb_height) - (fb_width * FONT_HEIGHT))[i] =
+        curr_bg_col;
   curr_y -= FONT_HEIGHT;
   curr_x = 0;
-  UNLOCK(newline_lock);
 }
 
 void putc(char c, uint32_t fgc, uint32_t bgc) {
-  MAKE_LOCK(putc_lock);
+  /* MAKE_LOCK(putc_lock); */
   switch (c) {
   case '\n':
     if (curr_y + FONT_HEIGHT > fb_height)
@@ -100,7 +98,7 @@ void putc(char c, uint32_t fgc, uint32_t bgc) {
     putnc(curr_x, curr_y, c, fgc, bgc);
     curr_x += FONT_WIDTH;
   }
-  UNLOCK(putc_lock);
+  /* UNLOCK(putc_lock); */
 }
 
 void putchar(char c) { putc(c, curr_fg_col, curr_bg_col); }

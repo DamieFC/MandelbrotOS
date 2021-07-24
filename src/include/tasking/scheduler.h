@@ -7,6 +7,12 @@
 #include <boot/stivale2.h>
 #include <registers.h>
 
+typedef struct proc {
+  char *name;
+  size_t thread_count;
+  int *tids;
+} proc_t;
+
 typedef struct thread {
   char *name;
   int state;
@@ -14,6 +20,7 @@ typedef struct thread {
   int run_once;
   int running;
   size_t tid;
+  proc_t *mother_proc;
   registers_t registers;
   struct thread *next;
 } thread_t;

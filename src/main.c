@@ -35,11 +35,11 @@ void *stivale2_get_tag(struct stivale2_struct *stivale2_struct, uint64_t id) {
 
 // TODO Fix sleep
 void k_thread() {
-  while (1) {
-    serial_print("3  3  3  3  3\r\n");
-    for (volatile size_t i = 0; i < 25000000; i++)
-      asm volatile("nop");
-  }
+  klog(3, "Scheduler started and running\r\n");
+  klog(init_kbd(), "Keyboard");
+  klog(pci_enumerate(), "PCI");
+  klog(init_pit(), "PIT");
+  while(1);
 }
 
 void kernel_main(struct stivale2_struct *bootloader_info) {
@@ -73,12 +73,7 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
   klog(init_heap(), "Heap");
   klog(init_pcspkr(), "PC speaker");
   klog(init_acpi(rsdp_info), "ACPI");
-  klog(init_kbd(), "Keyboard");
-  klog(pci_enumerate(), "PCI");
-  klog(init_pit(), "PIT");
   klog(init_smp(smp_info), "SMP");
-
-  serial_print("Hello, world!");
 
   scheduler_init((uintptr_t)k_thread, smp_info);
 

@@ -5,6 +5,7 @@
 #include <drivers/apic.h>
 #include <drivers/pit.h>
 #include <drivers/serial.h>
+#include <fb/fb.h>
 #include <lock.h>
 #include <mm/kheap.h>
 #include <mm/pmm.h>
@@ -20,27 +21,12 @@
 #define DEAD 1
 
 size_t current_tid = 0;
+size_t current_pid = 0;
+
 size_t thread_count = 0;
+size_t proc_count = 0;
 
 thread_t *current_thread;
-
-// TODO Fix sleep
-void thread1() {
-  while (1) {
-    serial_print("11111\r\n");
-    for (volatile size_t i = 0; i < 25000000; i++)
-      asm volatile("nop");
-  }
-}
-
-// TODO Fix sleep
-void thread2() {
-  while (1) {
-    serial_print("2 2 2 2 2\r\n");
-    for (volatile size_t i = 0; i < 25000000; i++)
-      asm volatile("nop");
-  }
-}
 
 void k_idle() {
   while (1)
@@ -135,6 +121,13 @@ run_thread:
 
 void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
   current_thread = kcalloc(sizeof(thread_t));
+  proc_t *kernel_proc = kcalloc(sizeof(proc_t));
+
+  *kernel_proc = (proc_t){
+      .name = "Kernel proc",
+      .thread_count = 1,
+      .tids = kmalloc(sizeof(int)),
+  };
 
   *current_thread = (thread_t){
       .tid = current_tid++,
@@ -143,6 +136,7 @@ void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
       .name = "k_init",
       .run_once = 0,
       .running = 0,
+      .mother_proc = kernel_proc,
       .registers =
           (registers_t){
               .cs = 0x08,
@@ -156,9 +150,6 @@ void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
 
   thread_count++;
   current_thread->next = current_thread;
-
-  create_kernel_thread((uintptr_t)thread1, "Thread 1");
-  create_kernel_thread((uintptr_t)thread2, "Thread 2");
 
   for (size_t i = 0; i < smp_info->cpu_count; i++)
     create_kernel_thread((uintptr_t)k_idle, "Kidle");
