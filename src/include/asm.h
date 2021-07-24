@@ -13,6 +13,8 @@ static inline uint8_t inb(uint16_t port) {
   return ret;
 }
 
+static inline void io_wait() { asm volatile("outb %%al, $0x80" : : "a"(0)); }
+
 static inline void outl(uint16_t port, uint32_t val) {
   asm volatile("outl %0, %1" : : "a"(val), "Nd"(port));
 }

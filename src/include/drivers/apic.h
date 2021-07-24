@@ -10,7 +10,9 @@ void lapic_eoi();
 
 void disable_pic();
 void init_lapic();
-void lapic_timer_init();
+
+void lapic_timer_get_freq();
+void lapic_timer_set_freq();
 
 void ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vect,
                          int status);

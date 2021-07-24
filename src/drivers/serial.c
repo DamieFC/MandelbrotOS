@@ -64,9 +64,9 @@ void serial_print_port(uint16_t base, char *buf) {
 
 int init_serial() {
   init_serial_port(SERIAL_COM1_BASE, 3);
-  init_serial_port(SERIAL_COM2_BASE, 3);
-  init_serial_port(SERIAL_COM3_BASE, 3);
-  init_serial_port(SERIAL_COM4_BASE, 3);
+  /* init_serial_port(SERIAL_COM2_BASE, 3); */
+  /* init_serial_port(SERIAL_COM3_BASE, 3); */
+  /* init_serial_port(SERIAL_COM4_BASE, 3); */
 
   return 0;
 }

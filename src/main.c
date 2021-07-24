@@ -36,10 +36,13 @@ void *stivale2_get_tag(struct stivale2_struct *stivale2_struct, uint64_t id) {
 // TODO Fix sleep
 void k_thread() {
   klog(3, "Scheduler started and running\r\n");
+  klog(init_serial(), "Serial");
   klog(init_kbd(), "Keyboard");
   klog(pci_enumerate(), "PCI");
   klog(init_pit(), "PIT");
-  while(1);
+  klog(init_pcspkr(), "PC speaker");
+  while (1)
+    ;
 }
 
 void kernel_main(struct stivale2_struct *bootloader_info) {
@@ -66,12 +69,11 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
 
   disable_pic();
   init_lapic();
-  lapic_timer_init();
+  lapic_timer_get_freq();
+  lapic_timer_set_freq();
 
   klog(init_fb(framebuffer_info), "Framebuffer");
-  klog(init_serial(), "Serial");
   klog(init_heap(), "Heap");
-  klog(init_pcspkr(), "PC speaker");
   klog(init_acpi(rsdp_info), "ACPI");
   klog(init_smp(smp_info), "SMP");
 

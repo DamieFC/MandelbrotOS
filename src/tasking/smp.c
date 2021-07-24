@@ -20,7 +20,7 @@ void core_init(struct stivale2_smp_info *smp_info) {
   load_idt();
   vmm_switch_map_to_kern();
   init_lapic();
-  lapic_timer_init();
+  lapic_timer_set_freq();
 
   cpu_locals_t *local = kcalloc(sizeof(cpu_locals_t));
   local->cpu_number = smp_info->extra_argument;

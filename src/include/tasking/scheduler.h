@@ -9,8 +9,11 @@
 
 typedef struct proc {
   char *name;
+  int status;
   size_t thread_count;
-  int *tids;
+  size_t pid;
+  size_t *tids;
+  struct proc *next;
 } proc_t;
 
 typedef struct thread {

@@ -27,17 +27,39 @@ size_t thread_count = 0;
 size_t proc_count = 0;
 
 thread_t *current_thread;
+proc_t *processes;
 
 void k_idle() {
   while (1)
     ;
 }
 
-size_t create_kernel_thread(uintptr_t addr, char *name) {
+proc_t *get_proc_by_pid(size_t pid) {
+  for (size_t i = 0; i < proc_count; i++) {
+    if (processes->pid == pid)
+      return processes;
+    processes = processes->next;
+  }
+  return NULL;
+}
+
+thread_t *get_thread_by_pid(size_t tid) {
+  thread_t *dup = current_thread;
+  for (size_t i = 0; i < thread_count; i++) {
+    if (dup->tid == tid)
+      return dup;
+    dup = dup->next;
+  }
+  return NULL;
+}
+
+size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid) {
   thread_t *thread = kcalloc(sizeof(thread_t));
 
   if (!thread)
     return -1;
+
+  proc_t *proc = get_proc_by_pid(pid);
 
   *thread = (thread_t){
       .tid = current_tid++,
@@ -46,6 +68,7 @@ size_t create_kernel_thread(uintptr_t addr, char *name) {
       .name = name,
       .run_once = 0,
       .running = 0,
+      .mother_proc = proc,
       .registers =
           (registers_t){
               .cs = 0x08,
@@ -68,9 +91,42 @@ size_t create_kernel_thread(uintptr_t addr, char *name) {
   thread->next = current_thread->next;
   current_thread->next = thread;
 
+  proc->tids[proc->thread_count++] = thread->tid;
+  size_t *tids_re = kmalloc(sizeof(size_t) * (proc->thread_count + 1));
+  memcpy(tids_re, proc->tids, (sizeof(size_t) * proc->thread_count));
+  kfree(proc->tids);
+  proc->tids = tids_re;
+
   UNLOCK(add_thread_lock);
 
   return thread->tid;
+}
+
+size_t create_proc(char *name) {
+  proc_t *proc = kcalloc(sizeof(proc_t));
+
+  if (!proc)
+    return -1;
+
+  proc->thread_count = 0;
+  proc->name = name;
+  proc->pid = current_pid++;
+  proc->tids = kmalloc(sizeof(size_t));
+
+  if (!proc->tids) {
+    kfree(proc);
+    return -1;
+  }
+
+  MAKE_LOCK(proc_lock);
+
+  proc_count++;
+  proc->next = processes->next;
+  processes->next = proc;
+
+  UNLOCK(proc_lock);
+
+  return proc->pid;
 }
 
 void schedule(uint64_t rsp) {
@@ -120,13 +176,14 @@ run_thread:
 }
 
 void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
+  processes = kcalloc(sizeof(proc_t));
   current_thread = kcalloc(sizeof(thread_t));
-  proc_t *kernel_proc = kcalloc(sizeof(proc_t));
 
-  *kernel_proc = (proc_t){
-      .name = "Kernel proc",
+  *processes = (proc_t){
+      .name = "kproc",
       .thread_count = 1,
-      .tids = kmalloc(sizeof(int)),
+      .tids = kmalloc(sizeof(size_t) * 2),
+      .pid = current_pid++,
   };
 
   *current_thread = (thread_t){
@@ -136,7 +193,7 @@ void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
       .name = "k_init",
       .run_once = 0,
       .running = 0,
-      .mother_proc = kernel_proc,
+      .mother_proc = processes,
       .registers =
           (registers_t){
               .cs = 0x08,
@@ -148,11 +205,15 @@ void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
       .next = NULL,
   };
 
+  proc_count++;
+  processes->next = processes;
+  processes->tids[0] = current_thread->tid;
+
   thread_count++;
   current_thread->next = current_thread;
 
   for (size_t i = 0; i < smp_info->cpu_count; i++)
-    create_kernel_thread((uintptr_t)k_idle, "Kidle");
+    create_kernel_thread((uintptr_t)k_idle, "kidle", processes->pid);
 
   irq_install_handler(SCHEDULE_REG - 32, schedule);
 

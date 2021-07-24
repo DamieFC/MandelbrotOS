@@ -3,6 +3,7 @@
 #include <asm.h>
 #include <drivers/apic.h>
 #include <drivers/pit.h>
+#include <lock.h>
 #include <mm/pmm.h>
 #include <stdint.h>
 
@@ -21,6 +22,8 @@
 #define IOAPIC_REG_IOREGSEL 0
 #define IOAPIC_REG_IOWIN 0x10
 #define IOAPIC_REG_VER 1
+
+uint32_t timer_freq;
 
 void disable_pic() {
   outb(0xa1, 0xff);
@@ -110,15 +113,7 @@ void ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vect,
   ioapic_redirect_gsi(lapic_id, irq, vect, 0, status);
 }
 
-/* uint32_t pit_read_count(void) { */
-/* outb(0x43, 0); */
-/* uint32_t counter = inb(0x40); */
-/* counter |= inb(0x40) << 8; */
-
-/* return counter; */
-/* } */
-
-void lapic_timer_init() {
+void lapic_timer_get_freq() {
   uint16_t divisor = 1193182 / 1000;
   outb(0x43, 0x36);
   outb(0x40, (uint8_t)(divisor & 0xFF));
@@ -128,16 +123,19 @@ void lapic_timer_init() {
   lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);
 
   outb(0x43, 0x30);
-  outb(0x40, (uint8_t)((uint16_t)(1193182 / 100000) & 0xFF));
-  outb(0x40, (uint8_t)((((uint16_t)(1193182 / 100000)) >> 8) & 0xFF));
+  outb(0x40, (uint8_t)((uint16_t)(1000) & 0xFF));
+  outb(0x40, (uint8_t)((((uint16_t)(1000)) >> 8) & 0xFF));
   while (pit_read_count() != 0)
     ;
 
   lapic_write(LAPIC_REG_TIMER, 0x10000);
 
-  uint32_t tick = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 100;
+  timer_freq = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 1000;
+}
 
+void lapic_timer_set_freq() {
   lapic_write(LAPIC_REG_TIMER, SCHEDULE_REG | 0x20000);
   lapic_write(LAPIC_REG_TIMER_DIV, 0x3);
-  lapic_write(LAPIC_REG_TIMER_INITCNT, tick);
+  lapic_write(LAPIC_REG_TIMER_INITCNT, timer_freq);
 }
+
