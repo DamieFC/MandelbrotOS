@@ -3,7 +3,6 @@
 #include <asm.h>
 #include <drivers/apic.h>
 #include <drivers/pit.h>
-#include <lock.h>
 #include <mm/pmm.h>
 #include <stdint.h>
 
@@ -138,4 +137,3 @@ void lapic_timer_set_freq() {
   lapic_write(LAPIC_REG_TIMER_DIV, 0x3);
   lapic_write(LAPIC_REG_TIMER_INITCNT, timer_freq);
 }
-

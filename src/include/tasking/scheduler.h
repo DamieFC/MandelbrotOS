@@ -14,6 +14,7 @@ typedef struct proc {
   size_t pid;
   size_t *tids;
   struct proc *next;
+  struct proc *prev;
 } proc_t;
 
 typedef struct thread {
@@ -26,6 +27,7 @@ typedef struct thread {
   proc_t *mother_proc;
   registers_t registers;
   struct thread *next;
+  struct thread *prev;
 } thread_t;
 
 void schedule(uint64_t rsp);
