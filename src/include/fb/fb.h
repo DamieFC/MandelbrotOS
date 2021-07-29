@@ -9,6 +9,7 @@ void set_bg(uint32_t bg_col);
 void set_fg(uint32_t fg_col);
 
 int init_fb(struct stivale2_struct_tag_framebuffer *framebuffer_info);
+void putnc(int x, int y, char c, uint32_t fgc, uint32_t bgc);
 void putchar(char c);
 
 #endif

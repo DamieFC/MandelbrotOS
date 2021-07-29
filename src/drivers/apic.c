@@ -113,7 +113,7 @@ void ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vect,
 }
 
 void lapic_timer_get_freq() {
-  uint16_t divisor = 1193182 / 1000;
+  uint16_t divisor = 1193180 / 1000;
   outb(0x43, 0x36);
   outb(0x40, (uint8_t)(divisor & 0xFF));
   outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
@@ -122,14 +122,14 @@ void lapic_timer_get_freq() {
   lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);
 
   outb(0x43, 0x30);
-  outb(0x40, (uint8_t)((uint16_t)(1000) & 0xFF));
-  outb(0x40, (uint8_t)((((uint16_t)(1000)) >> 8) & 0xFF));
-  while (pit_read_count() != 0)
+  outb(0x40, (uint8_t)((uint16_t)((1000) & 0xFF)));
+  outb(0x40, (uint8_t)((((uint16_t)(1000 >> 8) & 0xFF))));
+  while (pit_read_count() > 0)
     ;
 
-  lapic_write(LAPIC_REG_TIMER, 0x10000);
+  lapic_write(LAPIC_REG_TIMER, 1 << 16);
 
-  timer_freq = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 1000;
+  timer_freq = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 100;
 }
 
 void lapic_timer_set_freq() {

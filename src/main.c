@@ -21,6 +21,7 @@
 #include <sys/isr.h>
 #include <tasking/scheduler.h>
 #include <tasking/smp.h>
+#include <cpu_locals.h>
 
 void *stivale2_get_tag(struct stivale2_struct *stivale2_struct, uint64_t id) {
   struct stivale2_tag *current_tag = (void *)stivale2_struct->tags;
@@ -41,6 +42,7 @@ void k_thread() {
   klog(pci_enumerate(), "PCI");
   klog(init_pit(), "PIT");
   klog(init_pcspkr(), "PC speaker");
+
   while (1)
     ;
 }
@@ -77,7 +79,7 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
   klog(init_acpi(rsdp_info), "ACPI");
   klog(init_smp(smp_info), "SMP");
 
-  scheduler_init((uintptr_t)k_thread, smp_info);
+  scheduler_init((uintptr_t)k_thread);
 
   while (1)
     ;

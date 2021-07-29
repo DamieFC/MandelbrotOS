@@ -64,7 +64,6 @@ void knewline() {
 }
 
 void putc(char c, uint32_t fgc, uint32_t bgc) {
-  /* MAKE_LOCK(putc_lock); */
   switch (c) {
   case '\n':
     if (curr_y + FONT_HEIGHT > fb_height)
@@ -98,7 +97,10 @@ void putc(char c, uint32_t fgc, uint32_t bgc) {
     putnc(curr_x, curr_y, c, fgc, bgc);
     curr_x += FONT_WIDTH;
   }
-  /* UNLOCK(putc_lock); */
 }
 
-void putchar(char c) { putc(c, curr_fg_col, curr_bg_col); }
+void putchar(char c) {
+  MAKE_LOCK(putchar_lock);
+  putc(c, curr_fg_col, curr_bg_col);
+  UNLOCK(putchar_lock);
+}

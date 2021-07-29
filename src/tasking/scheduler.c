@@ -145,10 +145,10 @@ void kill_thread(size_t tid) {
 
       kfree((void *)cp->registers.rsp);
       kfree(cp);
-      
+
       cp->prev->next = cp->next;
       cp->next->prev = cp->prev;
-      
+
       thread_count--;
 
       break;
@@ -183,8 +183,9 @@ void kill_proc(size_t pid) {
   UNLOCK(proc_kill_lock);
 }
 
-void schedule(uint64_t rsp) {
+void __attribute__((optimize("O0"))) schedule(uint64_t rsp) {
   MAKE_LOCK(sched_lock);
+  lapic_eoi();
 
   current_thread->running = 0;
 
@@ -193,17 +194,18 @@ void schedule(uint64_t rsp) {
   else
     current_thread->run_once = 1;
 
+  thread_t* old_thread = current_thread;
+
   for (size_t i = 0; i < thread_count; i++) {
     current_thread = current_thread->next;
-    if (!current_thread->running && current_thread->state == ALIVE)
+    if (current_thread->running == 0 && current_thread != old_thread)
       goto run_thread;
   }
 
-  current_thread = current_thread->next;
+  current_thread = old_thread;
 
 run_thread:
   current_thread->running = 1;
-  lapic_eoi();
   UNLOCK(sched_lock);
 
   asm volatile("mov %0, %%rsp\n"
@@ -229,7 +231,7 @@ run_thread:
                : "memory");
 }
 
-void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
+void scheduler_init(uintptr_t addr) {
   processes = kcalloc(sizeof(proc_t));
   current_thread = kcalloc(sizeof(thread_t));
 
@@ -268,13 +270,13 @@ void scheduler_init(uintptr_t addr, struct stivale2_struct_tag_smp *smp_info) {
   current_thread->next = current_thread;
   current_thread->prev = current_thread;
 
-  for (size_t i = 0; i < smp_info->cpu_count; i++)
-    create_kernel_thread((uintptr_t)k_idle, "kidle", processes->pid);
 
+  /* asm volatile("1:\n" */
+               /* "sti\n" */
+               /* "hlt\n" */
+               /* "jmp 1b\n"); */
+  asm volatile("sti");
   irq_install_handler(SCHEDULE_REG - 32, schedule);
 
-  asm volatile("1:\n"
-               "sti\n"
-               "hlt\n"
-               "jmp 1b\n");
+  while (1);
 }
