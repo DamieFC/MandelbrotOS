@@ -1,5 +1,6 @@
 #include <acpi/acpi.h>
 #include <boot/stivale2.h>
+#include <cpu_locals.h>
 #include <drivers/apic.h>
 #include <drivers/kbd.h>
 #include <drivers/pcspkr.h>
@@ -21,7 +22,6 @@
 #include <sys/isr.h>
 #include <tasking/scheduler.h>
 #include <tasking/smp.h>
-#include <cpu_locals.h>
 
 void *stivale2_get_tag(struct stivale2_struct *stivale2_struct, uint64_t id) {
   struct stivale2_tag *current_tag = (void *)stivale2_struct->tags;

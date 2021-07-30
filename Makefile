@@ -5,9 +5,7 @@ CC = gcc
 AS = nasm
 
 # QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 1 -M q35 -soundhw pcspk -serial stdio
-# QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 4 -M q35 -soundhw pcspk -serial stdio
-QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 4 -M q35 -soundhw pcspk -monitor stdio
-# QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 2 -M q35 -soundhw pcspk -serial stdio
+QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 2 -M q35 -soundhw pcspk -serial stdio
 
 HDD = mandelbrotos.hdd
 KERNEL = $(BUILD_DIRECTORY)/mandelbrotos.elf
@@ -114,6 +112,6 @@ toolchain_nonnative:
 	 
 	# Set compiler 
 	@ echo "[SET MAKEFILE]"
-	@ sed -i 's/CC = gcc/CC = cross/bin/$(ARCH)-elf-O2cc/g' Makefile
+	@ sed -i 's/CC = gcc/CC = cross/bin/$(ARCH)-elf-gcc/g' Makefile
 	@ sed -i 's/LD = ld/LD = cross/bin/$(ARCH)-elf-ld/g' Makefile
 

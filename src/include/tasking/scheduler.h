@@ -30,8 +30,9 @@ typedef struct thread {
   struct thread *prev;
 } thread_t;
 
-void schedule(uint64_t rsp);
-
 void scheduler_init(uintptr_t addr);
+
+size_t create_user_thread(uintptr_t addr, char *name, size_t pid);
+size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid);
 
 #endif

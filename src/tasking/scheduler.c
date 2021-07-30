@@ -76,7 +76,8 @@ size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid) {
               .rflags = 0x202,
               .rsp = (uint64_t)pcalloc(1) + PAGE_SIZE + PHYS_MEM_OFFSET,
           },
-      .next = NULL,
+      .next = current_thread->next,
+      .prev = current_thread,
   };
 
   if (!thread->registers.rsp) {
@@ -87,9 +88,58 @@ size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid) {
   MAKE_LOCK(add_thread_lock);
 
   thread_count++;
-  thread->next = current_thread->next;
   thread->next->prev = thread;
-  thread->prev = current_thread;
+  current_thread->next = thread;
+
+  proc->thread_count++;
+
+  proc->tids[proc->thread_count++] = thread->tid;
+  size_t *tids_re = kmalloc(sizeof(size_t) * (proc->thread_count + 1));
+  memcpy(tids_re, proc->tids, (sizeof(size_t) * proc->thread_count));
+  kfree(proc->tids);
+  proc->tids = tids_re;
+
+  UNLOCK(add_thread_lock);
+
+  return thread->tid;
+}
+
+size_t create_user_thread(uintptr_t addr, char *name, size_t pid) {
+  thread_t *thread = kcalloc(sizeof(thread_t));
+  proc_t *proc = get_proc_by_pid(pid);
+
+  if (!thread || !proc)
+    return -1;
+
+  *thread = (thread_t){
+      .tid = current_tid++,
+      .exit_state = -1,
+      .state = ALIVE,
+      .name = name,
+      .run_once = 0,
+      .running = 0,
+      .mother_proc = proc,
+      .registers =
+          (registers_t){
+              .cs = 0x1b,
+              .ss = 0x23,
+              .rip = (uint64_t)addr,
+              .rflags = 0x202,
+              .rsp = (uint64_t)pcalloc(1) + PAGE_SIZE + PHYS_MEM_OFFSET,
+          },
+      .next = current_thread->next,
+      .prev = current_thread,
+  };
+
+  if (!thread->registers.rsp) {
+    kfree(thread);
+    return -1;
+  }
+
+  MAKE_LOCK(add_thread_lock);
+  
+  thread_count++;
+  thread->next->prev = thread;
   current_thread->next = thread;
 
   proc->thread_count++;
@@ -183,7 +233,7 @@ void kill_proc(size_t pid) {
   UNLOCK(proc_kill_lock);
 }
 
-void __attribute__((optimize("O0"))) schedule(uint64_t rsp) {
+void schedule(uint64_t rsp) {
   MAKE_LOCK(sched_lock);
   lapic_eoi();
 
@@ -194,11 +244,12 @@ void __attribute__((optimize("O0"))) schedule(uint64_t rsp) {
   else
     current_thread->run_once = 1;
 
-  thread_t* old_thread = current_thread;
+  thread_t *old_thread = current_thread;
 
   for (size_t i = 0; i < thread_count; i++) {
     current_thread = current_thread->next;
-    if (current_thread->running == 0 && current_thread != old_thread)
+    if (current_thread->running == 0 && current_thread != old_thread &&
+        current_thread->state == ALIVE)
       goto run_thread;
   }
 
@@ -270,13 +321,9 @@ void scheduler_init(uintptr_t addr) {
   current_thread->next = current_thread;
   current_thread->prev = current_thread;
 
-
-  /* asm volatile("1:\n" */
-               /* "sti\n" */
-               /* "hlt\n" */
-               /* "jmp 1b\n"); */
   asm volatile("sti");
   irq_install_handler(SCHEDULE_REG - 32, schedule);
 
-  while (1);
+  while (1)
+    ;
 }
