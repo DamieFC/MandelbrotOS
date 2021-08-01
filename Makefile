@@ -6,6 +6,7 @@ AS = nasm
 
 # QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 1 -M q35 -soundhw pcspk -serial stdio
 QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 2 -M q35 -soundhw pcspk -serial stdio
+QEMU_DOCKER = $(QEMU) -curses
 
 HDD = mandelbrotos.hdd
 KERNEL = $(BUILD_DIRECTORY)/mandelbrotos.elf
@@ -82,29 +83,32 @@ clean:
 qemu: $(HDD)
 	@ $(QEMU)
 
+qemu_docker: $(HDD)
+	@ $(QEMU_DOCKER)
+
 toolchain:
 	# Limine
 	@ echo "[BUILD LIMINE]"
-	@ mv thirdparty/limine/limine-install-linux-x86_64 resources/limine-install
-	@ mv thirdparty/limine/limine.sys resources
-	@ mv thirdparty/limine/BOOTX64.EFI resources
+	@ cp -R thirdparty/limine/limine-install-linux-x86_64 resources/limine-install
+	@ cp -R thirdparty/limine/limine.sys resources
+	@ cp -R thirdparty/limine/BOOTX64.EFI resources
 	 
 	# Echfs
 	@ echo "[BUILD ECHFS]"
 	@ cd thirdparty/echfs; make echfs-utils; make mkfs.echfs
-	@ mv thirdparty/echfs/echfs-utils resources
+	@ cp -R thirdparty/echfs/echfs-utils resources
 
 toolchain_nonnative:
 	# Limine
 	@ echo "[BUILD LIMINE]"
-	@ mv thirdparty/limine/limine-install-linux-x86_64 resources/limine-install
-	@ mv thirdparty/limine/limine.sys resources
-	@ mv thirdparty/limine/BOOTX64.EFI resources
+	@ cp -R thirdparty/limine/limine-install-linux-x86_64 resources/limine-install
+	@ cp -R thirdparty/limine/limine.sys resources
+	@ cp -R thirdparty/limine/BOOTX64.EFI resources
 	 
 	# Echfs
 	@ echo "[BUILD ECHFS]"
 	@ cd thirdparty/echfs; make echfs-utils; make mkfs.echfs
-	@ mv thirdparty/echfs/echfs-utils resources
+	@ cp -R thirdparty/echfs/echfs-utils resources
 	 
 	# Cross compiler
 	@ echo "[BUILD CROSS COMPILER]"
@@ -115,3 +119,6 @@ toolchain_nonnative:
 	@ sed -i 's/CC = gcc/CC = cross/bin/$(ARCH)-elf-gcc/g' Makefile
 	@ sed -i 's/LD = ld/LD = cross/bin/$(ARCH)-elf-ld/g' Makefile
 
+docker_build:
+	@ docker build -f buildenv/Dockerfile . -t mandelbrot
+	@ docker run -it mandelbrot make qemu_docker 
