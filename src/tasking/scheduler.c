@@ -137,7 +137,7 @@ size_t create_user_thread(uintptr_t addr, char *name, size_t pid) {
   }
 
   MAKE_LOCK(add_thread_lock);
-  
+
   thread_count++;
   thread->next->prev = thread;
   current_thread->next = thread;

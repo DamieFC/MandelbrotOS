@@ -20,6 +20,7 @@
 #include <sys/idt.h>
 #include <sys/irq.h>
 #include <sys/isr.h>
+#include <sys/tss.h>
 #include <tasking/scheduler.h>
 #include <tasking/smp.h>
 
@@ -47,6 +48,8 @@ void k_thread() {
     ;
 }
 
+extern void jmp();
+
 void kernel_main(struct stivale2_struct *bootloader_info) {
   struct stivale2_struct_tag_framebuffer *framebuffer_info =
       (struct stivale2_struct_tag_framebuffer *)stivale2_get_tag(
@@ -62,6 +65,7 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
           bootloader_info, STIVALE2_STRUCT_TAG_SMP_ID);
 
   init_gdt();
+  init_tss(smp_info->cpu_count);
   init_idt();
   init_isr();
   init_irq();
@@ -79,7 +83,11 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
   klog(init_acpi(rsdp_info), "ACPI");
   klog(init_smp(smp_info), "SMP");
 
-  scheduler_init((uintptr_t)k_thread);
+  jmp();
+
+  printf("How tho?\r\n");
+
+  /* scheduler_init((uintptr_t)k_thread); */
 
   while (1)
     ;

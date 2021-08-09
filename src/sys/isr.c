@@ -115,6 +115,7 @@ void c_isr_handler(uint64_t ex_no, uint64_t rsp) {
   (void)rsp;
   printf("\r\nCPU %lu: %s: FAULT!\r\n", get_locals()->cpu_number,
          exception_messages[ex_no]);
+
   while (1)
     asm volatile("cli\n"
                  "hlt\n");

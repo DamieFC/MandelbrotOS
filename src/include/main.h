@@ -3,6 +3,8 @@
 
 #include <boot/stivale2.h>
 
+extern uint8_t stack[];
+
 void kernel_main(struct stivale2_struct *bootloader_info);
 
 #endif

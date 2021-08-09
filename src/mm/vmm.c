@@ -6,6 +6,9 @@
 
 static uint64_t *kernel_pagemap;
 
+#define KERNEL_FLAGS 0b011
+#define USER_FLAGS 0b111
+
 static uint64_t *get_next_level(uint64_t *table, size_t index) {
   if (!(table[index] & 1)) {
     table[index] = (uint64_t)pcalloc(1);
@@ -57,10 +60,10 @@ int init_vmm() {
   kernel_pagemap = (uint64_t *)pcalloc(1);
 
   for (uintptr_t i = 0; i < 0x80000000; i += PAGE_SIZE)
-    vmm_map_page(kernel_pagemap, i, i + KERNEL_MEM_OFFSET, 3);
+    vmm_map_page(kernel_pagemap, i, i + KERNEL_MEM_OFFSET, KERNEL_FLAGS);
 
   for (uintptr_t i = 0; i < 0x200000000; i += PAGE_SIZE)
-    vmm_map_page(kernel_pagemap, i, i + PHYS_MEM_OFFSET, 3);
+    vmm_map_page(kernel_pagemap, i, i + PHYS_MEM_OFFSET, KERNEL_FLAGS);
 
   vmm_switch_map_to_kern();
 

@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include <sys/gdt.h>
 
-static gdt_entry_t gdt[8];
 static gdt_pointer_t gdt_ptr;
+gdt_t gdt;
 
 void load_gdt() {
   asm volatile("lgdt %0" : : "m"(gdt_ptr) : "memory");
@@ -26,43 +26,43 @@ void load_gdt() {
 }
 
 int init_gdt() {
-  gdt_ptr.limit = sizeof(gdt) - 1;
-  gdt_ptr.base = (uint64_t)gdt;
+  gdt_ptr.limit = sizeof(gdt_t) - 1;
+  gdt_ptr.base = (uint64_t)&gdt;
 
-  gdt[0] = (gdt_entry_t){.low = 0x0,
-                         .mid = 0x0,
-                         .high = 0x0,
-                         .limit = 0x0,
-                         .access = 0x0,
-                         .granularity = 0x0}; // NULL descriptor
+  gdt.entries[0] = (gdt_entry_t){.base_low = 0x0,
+                                 .base_mid = 0x0,
+                                 .base_high = 0x0,
+                                 .limit_low = 0x0,
+                                 .flags = 0x0,
+                                 .granularity = 0x0}; // NULL descriptor
 
-  gdt[1] = (gdt_entry_t){.low = 0x0,
-                         .mid = 0x0,
-                         .high = 0x0,
-                         .limit = 0x0,
-                         .access = 0x9a,
-                         .granularity = 0x20}; // Kernel code descriptor
+  gdt.entries[1] = (gdt_entry_t){.base_low = 0x0,
+                                 .base_mid = 0x0,
+                                 .base_high = 0x0,
+                                 .limit_low = 0x0,
+                                 .flags = 0x9a,
+                                 .granularity = 0xa0}; // Kernel code descriptor
 
-  gdt[2] = (gdt_entry_t){.low = 0x0,
-                         .mid = 0x0,
-                         .high = 0x0,
-                         .limit = 0x0,
-                         .access = 0x92,
-                         .granularity = 0x0}; // Kernel data descriptor
+  gdt.entries[2] = (gdt_entry_t){.base_low = 0x0,
+                                 .base_mid = 0x0,
+                                 .base_high = 0x0,
+                                 .limit_low = 0x0,
+                                 .flags = 0x92,
+                                 .granularity = 0xa0}; // Kernel data descriptor
 
-  gdt[3] = (gdt_entry_t){.low = 0x0,
-                         .mid = 0x0,
-                         .high = 0x0,
-                         .limit = 0x0,
-                         .access = 0xfa,
-                         .granularity = 0x20}; // User data descriptor
+  gdt.entries[3] = (gdt_entry_t){.base_low = 0x0,
+                                 .base_mid = 0x0,
+                                 .base_high = 0x0,
+                                 .limit_low = 0x0,
+                                 .flags = 0xfa,
+                                 .granularity = 0xa0}; // User data descriptor
 
-  gdt[4] = (gdt_entry_t){.low = 0x0,
-                         .mid = 0x0,
-                         .high = 0x0,
-                         .limit = 0x0,
-                         .access = 0xf2,
-                         .granularity = 0x0}; // User data descriptor
+  gdt.entries[4] = (gdt_entry_t){.base_low = 0x0,
+                                 .base_mid = 0x0,
+                                 .base_high = 0x0,
+                                 .limit_low = 0x0,
+                                 .flags = 0xf2,
+                                 .granularity = 0xa0}; // User data descriptor
 
   load_gdt();
 

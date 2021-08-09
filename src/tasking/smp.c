@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <sys/gdt.h>
 #include <sys/idt.h>
+#include <sys/tss.h>
 #include <tasking/scheduler.h>
 #include <tasking/smp.h>
 
@@ -21,6 +22,8 @@ void core_init(struct stivale2_smp_info *smp_info) {
   vmm_switch_map_to_kern();
   init_lapic();
   lapic_timer_set_freq();
+  tss_prepare_cpu(smp_info->extra_argument);
+  load_gdt();
 
   cpu_locals_t *local = kcalloc(sizeof(cpu_locals_t));
   local->cpu_number = smp_info->extra_argument;
@@ -38,10 +41,14 @@ int init_smp(struct stivale2_struct_tag_smp *smp_info) {
 
   for (size_t i = 0; i < smp_info->cpu_count; i++) {
     if (smp_info->smp_info[i].lapic_id == bsp_lapic_id) {
+      tss_prepare_cpu(i);
+      load_gdt();
+      
       cpu_locals_t *local = kcalloc(sizeof(cpu_locals_t));
       local->cpu_number = i;
       local->lapic_id = bsp_lapic_id;
       set_locals(local);
+      
       continue;
     }
 

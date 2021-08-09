@@ -10,7 +10,7 @@ QEMU = qemu-system-$(ARCH) -hdd $(HDD) -smp 2 -M q35 -soundhw pcspk -serial stdi
 HDD = mandelbrotos.hdd
 KERNEL = $(BUILD_DIRECTORY)/mandelbrotos.elf
 
-ASFLAGS = -f elf64 -O2
+ASFLAGS = -f elf64 -g
 
 CFLAGS := \
 	-mcmodel=kernel \
@@ -21,7 +21,7 @@ CFLAGS := \
 	-Werror \
 	-lm \
 	-std=gnu99 \
-	-O2 \
+	-g \
 	-Isrc/include \
 	-mgeneral-regs-only \
 	-mno-red-zone \
