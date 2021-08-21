@@ -72,10 +72,10 @@ int init_serial() {
 }
 
 void serial_print(char *buf) {
-  MAKE_LOCK(serial_print_lock);
+  /* MAKE_LOCK(serial_print_lock); */
   serial_print_port(SERIAL_COM1_BASE, buf);
   /* serial_print_port(SERIAL_COM2_BASE, buf); */
   /* serial_print_port(SERIAL_COM3_BASE, buf); */
   /* serial_print_port(SERIAL_COM4_BASE, buf); */
-  UNLOCK(serial_print_lock);
+  /* UNLOCK(serial_print_lock); */
 }

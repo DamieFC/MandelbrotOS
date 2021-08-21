@@ -16,13 +16,11 @@
 #define LAPIC_REG_ICR1 0x310
 #define LAPIC_APIC_ID 0x20
 
-#define LAPIC_TIMER_MS 50
-
 #define IOAPIC_REG_IOREGSEL 0
 #define IOAPIC_REG_IOWIN 0x10
 #define IOAPIC_REG_VER 1
 
-uint32_t timer_freq;
+uint32_t ticks_per_ms;
 
 void disable_pic() {
   outb(0xa1, 0xff);
@@ -55,7 +53,43 @@ void lapic_send_ipi(uint8_t lapic_id, uint8_t vect) {
   lapic_write(LAPIC_REG_ICR0, vect);
 }
 
-void init_lapic() { lapic_enable(0xf0); }
+void init_lapic() { lapic_enable(0xff); }
+
+void lapic_timer_get_freq() {
+  uint16_t divisor = 1193180 / 1000;
+  outb(0x43, 0x36);
+  outb(0x40, (uint8_t)(divisor & 0xFF));
+  outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
+
+  lapic_write(LAPIC_REG_TIMER_DIV, 0x3);
+  lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);
+
+  outb(0x43, 0x30);
+  outb(0x40, (uint8_t)((uint16_t)((1000) & 0xFF)));
+  outb(0x40, (uint8_t)((((uint16_t)(1000 >> 8) & 0xFF))));
+  while (pit_read_count() > 0)
+    ;
+
+  lapic_write(LAPIC_REG_TIMER, 1 << 16);
+
+  ticks_per_ms = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 1000;
+}
+
+void lapic_timer_stop() {
+  lapic_write(LAPIC_REG_TIMER_INITCNT, 0);
+  lapic_write(LAPIC_REG_TIMER, (1 << 16));
+}
+
+void lapic_timer_oneshot(uint8_t intr, uint32_t ms) {
+  lapic_timer_stop();
+
+  uint32_t ticks = ms * ticks_per_ms;
+
+  lapic_write(LAPIC_REG_TIMER, intr);
+  lapic_write(LAPIC_REG_TIMER_DIV, 0);
+  lapic_write(LAPIC_REG_TIMER_CURCNT, 0);
+  lapic_write(LAPIC_REG_TIMER_INITCNT, ticks);
+}
 
 uint32_t ioapic_read(uintptr_t addr, size_t reg) {
   *((volatile uint32_t *)(addr + IOAPIC_REG_IOREGSEL)) = reg;
@@ -110,30 +144,4 @@ void ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vect,
     }
   }
   ioapic_redirect_gsi(lapic_id, irq, vect, 0, status);
-}
-
-void lapic_timer_get_freq() {
-  uint16_t divisor = 1193180 / 1000;
-  outb(0x43, 0x36);
-  outb(0x40, (uint8_t)(divisor & 0xFF));
-  outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
-
-  lapic_write(LAPIC_REG_TIMER_DIV, 0x3);
-  lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);
-
-  outb(0x43, 0x30);
-  outb(0x40, (uint8_t)((uint16_t)((1000) & 0xFF)));
-  outb(0x40, (uint8_t)((((uint16_t)(1000 >> 8) & 0xFF))));
-  while (pit_read_count() > 0)
-    ;
-
-  lapic_write(LAPIC_REG_TIMER, 1 << 16);
-
-  timer_freq = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 100;
-}
-
-void lapic_timer_set_freq() {
-  lapic_write(LAPIC_REG_TIMER, SCHEDULE_REG | 0x20000);
-  lapic_write(LAPIC_REG_TIMER_DIV, 0x3);
-  lapic_write(LAPIC_REG_TIMER_INITCNT, timer_freq);
 }

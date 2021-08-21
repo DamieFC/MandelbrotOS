@@ -34,7 +34,6 @@ void *stivale2_get_tag(struct stivale2_struct *stivale2_struct, uint64_t id) {
   }
 }
 
-// TODO Fix sleep
 void k_thread() {
   klog(3, "Scheduler started and running\r\n");
   klog(init_serial(), "Serial");
@@ -72,7 +71,6 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
   disable_pic();
   init_lapic();
   lapic_timer_get_freq();
-  lapic_timer_set_freq();
 
   klog(init_fb(framebuffer_info), "Framebuffer");
   klog(init_heap(), "Heap");

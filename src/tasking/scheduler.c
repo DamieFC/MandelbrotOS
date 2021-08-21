@@ -4,8 +4,6 @@
 #include <cpu_locals.h>
 #include <drivers/apic.h>
 #include <drivers/pit.h>
-#include <drivers/serial.h>
-#include <fb/fb.h>
 #include <lock.h>
 #include <mm/kheap.h>
 #include <mm/pmm.h>
@@ -53,7 +51,8 @@ thread_t *get_thread_by_pid(size_t tid) {
   return NULL;
 }
 
-size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid) {
+size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid,
+                            size_t priority) {
   thread_t *thread = kcalloc(sizeof(thread_t));
   proc_t *proc = get_proc_by_pid(pid);
 
@@ -78,6 +77,7 @@ size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid) {
           },
       .next = current_thread->next,
       .prev = current_thread,
+      .priority = priority,
   };
 
   if (!thread->registers.rsp) {
@@ -104,7 +104,8 @@ size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid) {
   return thread->tid;
 }
 
-size_t create_user_thread(uintptr_t addr, char *name, size_t pid) {
+size_t create_user_thread(uintptr_t addr, char *name, size_t pid,
+                          size_t priority) {
   thread_t *thread = kcalloc(sizeof(thread_t));
   proc_t *proc = get_proc_by_pid(pid);
 
@@ -129,6 +130,7 @@ size_t create_user_thread(uintptr_t addr, char *name, size_t pid) {
           },
       .next = current_thread->next,
       .prev = current_thread,
+      .priority = priority,
   };
 
   if (!thread->registers.rsp) {
@@ -137,7 +139,7 @@ size_t create_user_thread(uintptr_t addr, char *name, size_t pid) {
   }
 
   MAKE_LOCK(add_thread_lock);
-  
+
   thread_count++;
   thread->next->prev = thread;
   current_thread->next = thread;
@@ -235,7 +237,6 @@ void kill_proc(size_t pid) {
 
 void schedule(uint64_t rsp) {
   MAKE_LOCK(sched_lock);
-  lapic_eoi();
 
   current_thread->running = 0;
 
@@ -258,6 +259,9 @@ void schedule(uint64_t rsp) {
 run_thread:
   current_thread->running = 1;
   UNLOCK(sched_lock);
+
+  lapic_eoi();
+  lapic_timer_oneshot(SCHEDULE_REG, current_thread->priority);
 
   asm volatile("mov %0, %%rsp\n"
                "pop %%r15\n"
@@ -309,6 +313,7 @@ void scheduler_init(uintptr_t addr) {
               .rflags = 0x202,
               .rsp = (uint64_t)pcalloc(1) + PAGE_SIZE + PHYS_MEM_OFFSET,
           },
+      .priority = 1,
       .next = NULL,
   };
 
@@ -321,8 +326,10 @@ void scheduler_init(uintptr_t addr) {
   current_thread->next = current_thread;
   current_thread->prev = current_thread;
 
-  asm volatile("sti");
   irq_install_handler(SCHEDULE_REG - 32, schedule);
+  lapic_timer_oneshot(SCHEDULE_REG, current_thread->priority);
+
+  asm volatile("sti");
 
   while (1)
     ;

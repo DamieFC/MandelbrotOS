@@ -24,6 +24,7 @@ typedef struct thread {
   int run_once;
   int running;
   size_t tid;
+  size_t priority;
   proc_t *mother_proc;
   registers_t registers;
   struct thread *next;
@@ -32,7 +33,9 @@ typedef struct thread {
 
 void scheduler_init(uintptr_t addr);
 
-size_t create_user_thread(uintptr_t addr, char *name, size_t pid);
-size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid);
+size_t create_user_thread(uintptr_t addr, char *name, size_t pid,
+                          size_t priority);
+size_t create_kernel_thread(uintptr_t addr, char *name, size_t pid,
+                            size_t priority);
 
 #endif

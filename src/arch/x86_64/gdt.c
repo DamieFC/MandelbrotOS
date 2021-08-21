@@ -4,7 +4,7 @@
 static gdt_entry_t gdt[8];
 static gdt_pointer_t gdt_ptr;
 
-void load_gdt() {
+__attribute__ ((optimize((3)))) void load_gdt() {
   asm volatile("lgdt %0" : : "m"(gdt_ptr) : "memory");
   asm volatile("mov %%rsp, %%rax\n"
                "push $0x10\n"
