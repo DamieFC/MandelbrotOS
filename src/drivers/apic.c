@@ -129,7 +129,7 @@ void lapic_timer_get_freq() {
 
   lapic_write(LAPIC_REG_TIMER, 1 << 16);
 
-  timer_freq = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 100;
+  timer_freq = (0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT)) / 10;
 }
 
 void lapic_timer_set_freq() {

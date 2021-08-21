@@ -65,7 +65,7 @@ void kernel_main(struct stivale2_struct *bootloader_info) {
           bootloader_info, STIVALE2_STRUCT_TAG_SMP_ID);
 
   init_gdt();
-  init_tss(smp_info->cpu_count);
+  /* init_tss(smp_info->cpu_count); */
   init_idt();
   init_isr();
   init_irq();

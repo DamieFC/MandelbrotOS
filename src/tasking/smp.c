@@ -2,6 +2,8 @@
 #include <cpu_locals.h>
 #include <drivers/apic.h>
 #include <drivers/pit.h>
+#include <klog.h>
+#include <lock.h>
 #include <mm/kheap.h>
 #include <mm/pmm.h>
 #include <mm/vmm.h>
@@ -12,6 +14,8 @@
 #include <sys/tss.h>
 #include <tasking/scheduler.h>
 #include <tasking/smp.h>
+
+size_t inited_cpus = 0;
 
 void core_init(struct stivale2_smp_info *smp_info) {
   smp_info =
@@ -30,6 +34,9 @@ void core_init(struct stivale2_smp_info *smp_info) {
   local->lapic_id = smp_info->lapic_id;
   set_locals(local);
 
+  LOCKED_INC(inited_cpus);
+  klog(3, "Brought up cpu #%lu\r\n", smp_info->extra_argument);
+
   asm volatile("1:\n"
                "sti\n"
                "hlt\n"
@@ -43,12 +50,15 @@ int init_smp(struct stivale2_struct_tag_smp *smp_info) {
     if (smp_info->smp_info[i].lapic_id == bsp_lapic_id) {
       tss_prepare_cpu(i);
       load_gdt();
-      
+
       cpu_locals_t *local = kcalloc(sizeof(cpu_locals_t));
       local->cpu_number = i;
       local->lapic_id = bsp_lapic_id;
       set_locals(local);
-      
+
+      LOCKED_INC(inited_cpus);
+      klog(3, "Brought up cpu #%lu\r\n", i);
+
       continue;
     }
 
@@ -57,6 +67,9 @@ int init_smp(struct stivale2_struct_tag_smp *smp_info) {
         (uint64_t)pmalloc(1) + PAGE_SIZE + PHYS_MEM_OFFSET;
     smp_info->smp_info[i].goto_address = (uint64_t)core_init;
   }
+
+  while (LOCKED_READ(inited_cpus) != smp_info->cpu_count)
+    ;
 
   return 0;
 }

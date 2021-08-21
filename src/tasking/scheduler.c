@@ -235,7 +235,6 @@ void kill_proc(size_t pid) {
 
 void schedule(uint64_t rsp) {
   MAKE_LOCK(sched_lock);
-  lapic_eoi();
 
   current_thread->running = 0;
 
@@ -257,6 +256,7 @@ void schedule(uint64_t rsp) {
 
 run_thread:
   current_thread->running = 1;
+  lapic_eoi();
   UNLOCK(sched_lock);
 
   asm volatile("mov %0, %%rsp\n"

@@ -23,8 +23,7 @@ jmp:
   push rax
   pushfq
   push (3 * 8) | 3
-  lea rcx, [rel print]
-  push rcx
+  push print
   iretq
 
 print:
